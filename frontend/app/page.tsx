@@ -270,12 +270,15 @@ export default function Home() {
       )}
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col shadow-xl transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} shrink-0`}>
-        <div className="p-4 bg-blue-900 text-white flex flex-col gap-1 shrink-0">
-          <div className="flex justify-between items-center">
-            <h1 className="font-bold text-base tracking-wider">患者リスト</h1>
-            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-white font-bold text-xl px-2">×</button>
+        
+        <div className="p-4 bg-blue-900 text-white flex flex-col shrink-0">
+          <div className="flex justify-between items-center mb-2">
+            <span className="font-bold text-sm tracking-wider truncate"> {username} さん</span>
+            <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-white font-bold text-xl px-2 ml-2">×</button>
           </div>
+          <h1 className="font-bold text-xs text-blue-300 tracking-wider border-t border-blue-700 pt-2 mt-1">患者リスト</h1>
         </div>
+        
         <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0">
           <form onSubmit={handleAddPatient} className="flex gap-2">
             <input type="text" placeholder="新規患者名" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)} className="flex-1 border p-2 rounded text-sm" />
@@ -313,7 +316,6 @@ export default function Home() {
                 onTouchCancel={handleTouchEnd}
                 onContextMenu={(e) => e.preventDefault()}
                 onClick={(e) => e.stopPropagation()}
-                
                 style={{ touchAction: 'none', WebkitTouchCallout: 'none', WebkitUserSelect: 'none', WebkitUserDrag: 'none' } as any}
                 className="w-12 flex items-center justify-center text-gray-300 active:text-blue-500 cursor-grab active:cursor-grabbing"
               >
@@ -377,7 +379,7 @@ export default function Home() {
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 1. 文字起こし結果</label><textarea className="w-full h-32 border border-gray-300 p-3 rounded-lg text-sm" value={transcribedText} onChange={(e) => setTranscribedText(e.target.value)}></textarea></div>
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 2. マスキング対象</label><input type="text" value={manualNames} onChange={(e) => setManualNames(e.target.value)} className="w-full border border-gray-300 p-3 rounded-lg text-sm"/></div>
                   <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300"><label className="block text-sm font-bold text-gray-700 mb-2"> 3. プレビュー</label><div className="text-gray-800 text-sm min-h-[3rem]" dangerouslySetInnerHTML={{ __html: highlightedText || "テキストを入力してください" }} /></div>
-                  <button onClick={handleGenerateSoap} disabled={!maskedText || isLoading} className="mt-2 bg-green-500 text-white font-bold py-4 px-8 rounded-lg shadow disabled:opacity-50 text-sm md:text-base">✨ 安全な状態でSOAPを作成</button>
+                  <button onClick={handleGenerateSoap} disabled={!maskedText || isLoading} className="mt-2 bg-green-500 text-white font-bold py-4 px-8 rounded-lg shadow disabled:opacity-50 text-sm md:text-base"> 安全な状態でSOAPを作成</button>
                   {finalSoap && (
                     <div className="mt-4 border-t pt-6 border-gray-200">
                       <h3 className="font-bold text-blue-900 mb-3 text-sm md:text-base"> 作成完了！</h3>
