@@ -46,6 +46,13 @@ export default function Home() {
     setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
   }, []);
 
+  useEffect(() => {
+    if (token) {
+      window.scrollTo(0, 0); 
+      setTimeout(() => window.scrollTo(0, 0), 150);
+    }
+  }, [token]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 3000);
@@ -70,6 +77,11 @@ export default function Home() {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError("");
+
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
     if ((authMode === "register" || authMode === "forgot") && password !== confirmPassword) {
       setAuthError("パスワードと確認用パスワードが一致しません"); return;
     }
@@ -281,7 +293,8 @@ export default function Home() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4 relative">
+      // 💡 修正：min-h-screen を min-h-[100dvh] に変更（iPhoneで少し下にはみ出るバグを修正）
+      <div className="min-h-[100dvh] bg-blue-50 flex items-center justify-center p-4 relative">
         <style>{`body { background-color: #eff6ff; }`}</style>
         {toastMessage && (
           <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm font-bold opacity-90 animate-fade-in-down pointer-events-none">
@@ -308,7 +321,8 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden relative">
+    // 💡 修正：h-screen を h-[100dvh] に変更（外枠がiPhoneの画面サイズと完全に一致するようにする）
+    <div className="flex h-[100dvh] bg-gray-100 overflow-hidden relative">
       <style>{`body { background-color: #f3f4f6; }`}</style>
       
       {toastMessage && (
@@ -382,7 +396,8 @@ export default function Home() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-gray-100 w-full relative">
+      {/* 💡 修正：h-screen を h-full に変更（親枠にはめ込むだけに修正） */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-gray-100 w-full relative">
         <header className="md:hidden bg-blue-900 text-white p-3 flex justify-between items-center shrink-0 shadow-md z-30">
           <div className="flex items-center gap-3">
             <button onClick={() => setIsSidebarOpen(true)} className="p-1 focus:outline-none">
@@ -434,6 +449,7 @@ export default function Home() {
               )}
               {activeTab === "record" && (
                 <div className="max-w-4xl mx-auto bg-white p-4 md:p-8 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4 md:gap-6 pb-10">
+                  
                   <div className="flex justify-center border-b pb-4 md:pb-6">
                     <button 
                       key={isRecording ? "recording" : "idle"}
@@ -446,6 +462,7 @@ export default function Home() {
                       {!isRecording ? " 録音して文字起こし" : " 録音を終了する"}
                     </button>
                   </div>
+
                   {isLoading && <p className="text-center text-blue-500 text-sm font-bold animate-pulse">AIが処理中...</p>}
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 1. 文字起こし結果</label><textarea className="w-full h-32 border border-gray-300 p-3 rounded-lg text-base md:text-sm" value={transcribedText} onChange={(e) => setTranscribedText(e.target.value)}></textarea></div>
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 2. マスキング対象</label><input type="text" value={manualNames} onChange={(e) => setManualNames(e.target.value)} className="w-full border border-gray-300 p-3 rounded-lg text-base md:text-sm"/></div>
