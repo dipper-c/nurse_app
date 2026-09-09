@@ -20,6 +20,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"history" | "record">("history");
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  
+  
+  const [draggedPatientId, setDraggedPatientId] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string>("");
 
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +38,25 @@ export default function Home() {
   const audioChunksRef = useRef<Blob[]>([]);
   
   const API_BASE = "/api";
+
+  
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 3000);
+  };
+
+  
+  const formatDateTime = (dateString: string) => {
+    const d = new Date(dateString);
+    const days = ['日', '月', '火', '水', '木', '金', '土'];
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const week = days[d.getDay()];
+    const hh = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${yyyy}/${mm}/${dd} (${week}) ${hh}:${min}`;
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,8 +73,8 @@ export default function Home() {
       const res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: formData.toString() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "エラーが発生しました");
-      if (authMode === "login") { setToken(data.access_token); }
-      else { alert(authMode === "register" ? "登録完了！ログインしてください。" : "パスワードをリセットしました！"); setAuthMode("login"); setPassword(""); setConfirmPassword(""); setSecretWord(""); }
+      if (authMode === "login") { setToken(data.access_token); showToast("ログインしました"); }
+      else { showToast(authMode === "register" ? "登録完了！ログインしてください。" : "パスワードをリセットしました！"); setAuthMode("login"); setPassword(""); setConfirmPassword(""); setSecretWord(""); }
     } catch (error: any) { setAuthError(error.message); }
   };
 
@@ -59,6 +82,21 @@ export default function Home() {
     setToken(null); setUsername(""); setPassword(""); setConfirmPassword(""); setSecretWord(""); setPatients([]);
     setSelectedPatient(null); setRecords([]); setActiveTab("history");
     setTranscribedText(""); setManualNames(""); setHighlightedText(""); setMaskedText(""); setMaskingDict({}); setFinalSoap("");
+    showToast("ログアウトしました");
+  };
+
+  
+  const handleDeleteAccount = async () => {
+    if (!confirm("⚠️ 本当にアカウントを削除しますか？\n\nすべての患者データと記録が完全に消去され、元に戻すことはできません。")) return;
+    try {
+      const res = await fetch(`${API_BASE}/users/me`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        showToast("アカウントを削除しました");
+        setToken(null);
+      } else {
+        showToast("削除に失敗しました");
+      }
+    } catch (error) { showToast("通信エラーが発生しました"); }
   };
 
   const fetchPatients = async () => {
@@ -71,7 +109,23 @@ export default function Home() {
     e.preventDefault();
     if (!newPatientName.trim()) return;
     const res = await fetch(`${API_BASE}/patients`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ name: newPatientName }), });
-    if (res.ok) { setNewPatientName(""); fetchPatients(); }
+    if (res.ok) { setNewPatientName(""); fetchPatients(); showToast("患者を追加しました"); }
+  };
+
+  
+  const handleDragStart = (e: React.DragEvent, id: number) => { setDraggedPatientId(id); };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
+  const handleDrop = (e: React.DragEvent, targetId: number) => {
+    e.preventDefault();
+    if (draggedPatientId === null || draggedPatientId === targetId) return;
+    const draggedIdx = patients.findIndex(p => p.id === draggedPatientId);
+    const targetIdx = patients.findIndex(p => p.id === targetId);
+    const newPatients = [...patients];
+    const [draggedItem] = newPatients.splice(draggedIdx, 1);
+    newPatients.splice(targetIdx, 0, draggedItem);
+    setPatients(newPatients);
+    setDraggedPatientId(null);
+    showToast("順番を入れ替えました");
   };
 
   const fetchRecords = async (patientId: number) => {
@@ -94,11 +148,11 @@ export default function Home() {
         const formData = new FormData(); formData.append("audio_file", audioBlob, "recording.webm");
         try {
           const res = await fetch(`${API_BASE}/transcribe`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData });
-          const data = await res.json(); setTranscribedText(data.transcription);
-        } catch (error) { alert("文字起こし失敗"); } finally { setIsLoading(false); }
+          const data = await res.json(); setTranscribedText(data.transcription); showToast("文字起こしが完了しました");
+        } catch (error) { showToast("文字起こしに失敗しました"); } finally { setIsLoading(false); }
       };
       mediaRecorder.start(); setIsRecording(true);
-    } catch (error) { alert("マイクのアクセスが許可されていません"); }
+    } catch (error) { showToast("マイクのアクセスが許可されていません"); }
   };
   const stopRecording = () => { mediaRecorderRef.current?.stop(); setIsRecording(false); };
 
@@ -115,8 +169,8 @@ export default function Home() {
     setIsLoading(true);
     try {
       const res = await fetch(`${API_BASE}/generate_soap`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ patient_id: selectedPatient.id, masked_text: maskedText, masking_dict: maskingDict, original_text: transcribedText }), });
-      const data = await res.json(); setFinalSoap(data.final_soap); fetchRecords(selectedPatient.id);
-    } catch (error) { alert("SOAP生成失敗"); } finally { setIsLoading(false); }
+      const data = await res.json(); setFinalSoap(data.final_soap); fetchRecords(selectedPatient.id); showToast("SOAPを作成・保存しました！");
+    } catch (error) { showToast("SOAP生成失敗"); } finally { setIsLoading(false); }
   };
 
   const SoapDisplay = ({ soapStr }: { soapStr: string }) => {
@@ -128,7 +182,7 @@ export default function Home() {
           <div key={key} className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm relative group">
             <div className="flex justify-between items-center mb-2">
               <span className="font-bold text-blue-900 text-sm">{key}</span>
-              <button onClick={() => { navigator.clipboard.writeText(String(value)); alert(`${key} をコピーしました！`); }} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded border border-gray-300"> コピー</button>
+              <button onClick={() => { navigator.clipboard.writeText(String(value)); showToast(`「${key}」をコピーしました`); }} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 py-1 px-3 rounded border border-gray-300 transition-colors"> コピー</button>
             </div>
             <p className="text-gray-800 whitespace-pre-wrap text-sm">{String(value)}</p>
           </div>
@@ -139,8 +193,16 @@ export default function Home() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-blue-50 flex items-center justify-center p-4 relative">
         <style>{`body { background-color: #eff6ff; }`}</style>
+        
+        
+        {toastMessage && (
+          <div className="fixed top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-50 text-sm font-bold opacity-90 animate-fade-in-down">
+            {toastMessage}
+          </div>
+        )}
+
         <div className="bg-white p-6 md:p-8 rounded-2xl shadow-lg w-full max-w-md">
           <h1 className="text-xl md:text-2xl font-bold text-center text-blue-900 mb-6">{authMode === "login" ? "ログイン" : authMode === "register" ? "新規登録" : "パスワードリセット"}</h1>
           {authError && <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm font-bold">{authError}</div>}
@@ -163,11 +225,16 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden relative">
       <style>{`body { background-color: #f3f4f6; }`}</style>
+      
+      
+      {toastMessage && (
+        <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-2xl z-[100] text-sm font-bold opacity-90">
+          {toastMessage}
+        </div>
+      )}
+
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-gray-500 bg-opacity-30 backdrop-blur-sm z-40 md:hidden transition-opacity"
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-30 backdrop-blur-sm z-40 md:hidden transition-opacity" onClick={() => setIsSidebarOpen(false)}></div>
       )}
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col shadow-xl transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} shrink-0`}>
@@ -184,32 +251,37 @@ export default function Home() {
           </form>
         </div>
         <div className="flex-1 overflow-y-auto">
+          
           {patients.map(p => (
             <button 
               key={p.id} 
+              draggable
+              onDragStart={(e) => handleDragStart(e, p.id)}
+              onDragOver={handleDragOver}
+              onDrop={(e) => handleDrop(e, p.id)}
               onClick={() => { setSelectedPatient(p); setIsSidebarOpen(false); }} 
-              className={`w-full text-left py-3 px-4 border-b border-gray-50 text-sm ${selectedPatient?.id === p.id ? 'bg-blue-100 border-l-4 border-blue-600 font-bold' : 'hover:bg-blue-50'}`}>
-              {p.name}
+              className={`w-full text-left py-3 px-4 border-b border-gray-50 text-sm flex items-center justify-between cursor-move
+                ${selectedPatient?.id === p.id ? 'bg-blue-100 border-l-4 border-blue-600 font-bold' : 'hover:bg-blue-50'}
+                ${draggedPatientId === p.id ? 'opacity-50' : ''}`}>
+              <span>{p.name}</span>
+              <span className="text-gray-300 text-xs">≡</span> 
             </button>
           ))}
         </div>
-        <div className="p-4 border-t border-gray-200 bg-gray-50 shrink-0 hidden md:block">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 shrink-0 flex flex-col gap-3">
           <button onClick={handleLogout} className="w-full text-sm bg-gray-200 text-gray-700 py-2 rounded hover:bg-gray-300 font-bold">ログアウト</button>
+          <button onClick={handleDeleteAccount} className="w-full text-xs text-red-500 hover:text-red-700 py-1 underline">アカウントを削除する</button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-gray-100 w-full relative">
-        
         <header className="md:hidden bg-blue-900 text-white p-3 flex justify-between items-center shrink-0 shadow-md z-30">
           <div className="flex items-center gap-3">
             <button onClick={() => setIsSidebarOpen(true)} className="p-1 focus:outline-none">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <span className="font-bold text-sm tracking-wider">
-               {username} さん
-            </span>
+            <span className="font-bold text-sm tracking-wider"> {username} さん</span>
           </div>
-          <button onClick={handleLogout} className="text-xs bg-blue-700 py-1 px-3 rounded hover:bg-blue-600 font-bold border border-blue-600">ログアウト</button>
         </header>
 
         {!selectedPatient ? (
@@ -220,9 +292,7 @@ export default function Home() {
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
             <div className="bg-white border-b border-gray-200 px-4 md:px-8 pt-4 md:pt-6 shadow-sm shrink-0">
-              
               <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6">{selectedPatient.name} さんの記録</h2>
-              
               <div className="flex gap-1 overflow-x-auto">
                 <button onClick={() => setActiveTab("history")} className={`px-5 py-3 font-bold text-sm rounded-t-lg whitespace-nowrap ${activeTab === "history" ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}> 過去の記録</button>
                 <button onClick={() => setActiveTab("record")} className={`px-5 py-3 font-bold text-sm rounded-t-lg whitespace-nowrap ${activeTab === "record" ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'}`}> 記録をつける</button>
@@ -235,7 +305,8 @@ export default function Home() {
                   {records.length === 0 ? <p className="text-gray-500 text-center text-sm mt-10">記録がありません</p> : (
                     records.map(r => (
                       <div key={r.id}>
-                        <div className="text-sm text-gray-500 mb-2 font-bold pl-2 border-l-4 border-blue-400"> {new Date(r.created_at).toLocaleString('ja-JP')}</div>
+                        
+                        <div className="text-sm text-gray-500 mb-2 font-bold pl-2 border-l-4 border-blue-400"> {formatDateTime(r.created_at)}</div>
                         <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-2 shadow-sm"><SoapDisplay soapStr={r.soap_report} /></div>
                         <details className="text-xs text-gray-500 ml-2 mb-6"><summary className="cursor-pointer font-bold">文字起こしを表示</summary><p className="mt-2 p-3 bg-gray-50 border rounded">{r.transcription}</p></details>
                       </div>
