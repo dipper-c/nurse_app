@@ -52,7 +52,13 @@ export default function Home() {
   };
 
   const formatDateTime = (dateString: string) => {
-    const d = new Date(dateString);
+    
+    let safeDateString = dateString;
+    if (!safeDateString.includes("Z") && !safeDateString.includes("+")) {
+      safeDateString = safeDateString.replace(" ", "T") + "Z";
+    }
+    
+    const d = new Date(safeDateString);
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -240,7 +246,6 @@ export default function Home() {
           <h1 className="text-xl md:text-2xl font-bold text-center text-blue-900 mb-6">{authMode === "login" ? "ログイン" : authMode === "register" ? "新規登録" : "パスワードリセット"}</h1>
           {authError && <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm font-bold">{authError}</div>}
           <form onSubmit={handleAuth} className="flex flex-col gap-4">
-            
             <input type="text" placeholder="ID (英数字4文字以上)" value={username} onChange={(e) => setUsername(e.target.value)} className="border p-3 rounded text-base md:text-sm" required />
             {(authMode === "register" || authMode === "forgot") && <input type="text" placeholder="秘密の言葉" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} className="border p-3 rounded bg-yellow-50 text-base md:text-sm" required />}
             <input type="password" placeholder="パスワード (8文字以上)" value={password} onChange={(e) => setPassword(e.target.value)} className="border p-3 rounded text-base md:text-sm" required />
@@ -281,7 +286,6 @@ export default function Home() {
         
         <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0">
           <form onSubmit={handleAddPatient} className="flex gap-2">
-            
             <input type="text" placeholder="新規患者名" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)} className="flex-1 border p-2 rounded text-base md:text-sm" />
             <button type="submit" className="bg-blue-500 text-white px-3 rounded text-sm font-bold">＋</button>
           </form>
