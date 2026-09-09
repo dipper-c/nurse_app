@@ -240,10 +240,11 @@ export default function Home() {
           <h1 className="text-xl md:text-2xl font-bold text-center text-blue-900 mb-6">{authMode === "login" ? "ログイン" : authMode === "register" ? "新規登録" : "パスワードリセット"}</h1>
           {authError && <div className="bg-red-100 text-red-600 p-3 rounded mb-4 text-sm font-bold">{authError}</div>}
           <form onSubmit={handleAuth} className="flex flex-col gap-4">
-            <input type="text" placeholder="ID (英数字4文字以上)" value={username} onChange={(e) => setUsername(e.target.value)} className="border p-3 rounded text-sm" required />
-            {(authMode === "register" || authMode === "forgot") && <input type="text" placeholder="秘密の言葉" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} className="border p-3 rounded bg-yellow-50 text-sm" required />}
-            <input type="password" placeholder="パスワード (8文字以上)" value={password} onChange={(e) => setPassword(e.target.value)} className="border p-3 rounded text-sm" required />
-            {(authMode === "register" || authMode === "forgot") && <input type="password" placeholder="パスワード（確認用）" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="border p-3 rounded bg-gray-50 text-sm" required />}
+            
+            <input type="text" placeholder="ID (英数字4文字以上)" value={username} onChange={(e) => setUsername(e.target.value)} className="border p-3 rounded text-base md:text-sm" required />
+            {(authMode === "register" || authMode === "forgot") && <input type="text" placeholder="秘密の言葉" value={secretWord} onChange={(e) => setSecretWord(e.target.value)} className="border p-3 rounded bg-yellow-50 text-base md:text-sm" required />}
+            <input type="password" placeholder="パスワード (8文字以上)" value={password} onChange={(e) => setPassword(e.target.value)} className="border p-3 rounded text-base md:text-sm" required />
+            {(authMode === "register" || authMode === "forgot") && <input type="password" placeholder="パスワード（確認用）" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="border p-3 rounded bg-gray-50 text-base md:text-sm" required />}
             <button type="submit" className="bg-blue-600 text-white font-bold py-3 rounded hover:bg-blue-700 text-sm">{authMode === "login" ? "ログイン" : authMode === "register" ? "登録する" : "変更する"}</button>
           </form>
           <div className="mt-6 flex flex-col gap-2 text-sm text-center">
@@ -270,7 +271,6 @@ export default function Home() {
       )}
 
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 flex flex-col shadow-xl transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} shrink-0`}>
-        
         <div className="p-4 bg-blue-900 text-white flex flex-col shrink-0">
           <div className="flex justify-between items-center mb-2">
             <span className="font-bold text-sm tracking-wider truncate"> {username} さん</span>
@@ -281,7 +281,8 @@ export default function Home() {
         
         <div className="p-3 border-b border-gray-100 bg-gray-50 shrink-0">
           <form onSubmit={handleAddPatient} className="flex gap-2">
-            <input type="text" placeholder="新規患者名" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)} className="flex-1 border p-2 rounded text-sm" />
+            
+            <input type="text" placeholder="新規患者名" value={newPatientName} onChange={(e) => setNewPatientName(e.target.value)} className="flex-1 border p-2 rounded text-base md:text-sm" />
             <button type="submit" className="bg-blue-500 text-white px-3 rounded text-sm font-bold">＋</button>
           </form>
         </div>
@@ -376,8 +377,8 @@ export default function Home() {
                     {!isRecording ? <button onClick={startRecording} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow text-sm md:text-base"> 録音して文字起こし</button> : <button onClick={stopRecording} className="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow animate-pulse text-sm md:text-base"> 録音を終了する</button>}
                   </div>
                   {isLoading && <p className="text-center text-blue-500 text-sm font-bold animate-pulse">AIが処理中...</p>}
-                  <div><label className="block text-sm font-bold text-gray-700 mb-2"> 1. 文字起こし結果</label><textarea className="w-full h-32 border border-gray-300 p-3 rounded-lg text-sm" value={transcribedText} onChange={(e) => setTranscribedText(e.target.value)}></textarea></div>
-                  <div><label className="block text-sm font-bold text-gray-700 mb-2"> 2. マスキング対象</label><input type="text" value={manualNames} onChange={(e) => setManualNames(e.target.value)} className="w-full border border-gray-300 p-3 rounded-lg text-sm"/></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2"> 1. 文字起こし結果</label><textarea className="w-full h-32 border border-gray-300 p-3 rounded-lg text-base md:text-sm" value={transcribedText} onChange={(e) => setTranscribedText(e.target.value)}></textarea></div>
+                  <div><label className="block text-sm font-bold text-gray-700 mb-2"> 2. マスキング対象</label><input type="text" value={manualNames} onChange={(e) => setManualNames(e.target.value)} className="w-full border border-gray-300 p-3 rounded-lg text-base md:text-sm"/></div>
                   <div className="bg-gray-50 p-4 rounded-lg border-2 border-dashed border-gray-300"><label className="block text-sm font-bold text-gray-700 mb-2"> 3. プレビュー</label><div className="text-gray-800 text-sm min-h-[3rem]" dangerouslySetInnerHTML={{ __html: highlightedText || "テキストを入力してください" }} /></div>
                   <button onClick={handleGenerateSoap} disabled={!maskedText || isLoading} className="mt-2 bg-green-500 text-white font-bold py-4 px-8 rounded-lg shadow disabled:opacity-50 text-sm md:text-base"> 安全な状態でSOAPを作成</button>
                   {finalSoap && (
