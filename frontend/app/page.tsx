@@ -116,6 +116,29 @@ export default function Home() {
     if (res.ok) { setNewPatientName(""); fetchPatients(); showToast("患者を追加しました"); }
   };
 
+  const handleDeletePatient = async (patientId: number, patientName: string) => {
+    if (!confirm(`⚠️ 本当に「${patientName}」さんのデータを削除しますか？\n\n関連するすべての記録も削除され、元に戻すことはできません。`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/patients/${patientId}`, { 
+        method: "DELETE", 
+        headers: { Authorization: `Bearer ${token}` } 
+      });
+      if (res.ok) {
+        showToast(`${patientName}さんのデータを削除しました`);
+        if (selectedPatient?.id === patientId) {
+          setSelectedPatient(null);
+          setRecords([]);
+          setActiveTab("history");
+        }
+        fetchPatients();
+      } else {
+        showToast("削除に失敗しました");
+      }
+    } catch (error) {
+      showToast("通信エラーが発生しました");
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, id: number) => { setActiveDragId(id); };
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
   const handleDrop = (e: React.DragEvent, targetId: number) => {
@@ -377,7 +400,18 @@ export default function Home() {
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
             <div className="bg-white border-b border-gray-200 px-4 md:px-8 pt-4 md:pt-6 shadow-sm shrink-0">
-              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4 md:mb-6">{selectedPatient.name} さんの記録</h2>
+              
+              <div className="flex justify-between items-start mb-4 md:mb-6">
+                <h2 className="text-xl md:text-2xl font-bold text-gray-800 break-all">{selectedPatient.name} さんの記録</h2>
+                <button 
+                  onClick={() => handleDeletePatient(selectedPatient.id, selectedPatient.name)}
+                  className="shrink-0 ml-4 text-xs bg-red-50 text-red-600 hover:bg-red-100 py-2 px-3 rounded border border-red-200 font-bold transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  削除
+                </button>
+              </div>
+
               <div className="flex gap-1 overflow-x-auto">
                 <button onClick={() => setActiveTab("history")} className={`px-5 py-3 font-bold text-sm rounded-t-lg whitespace-nowrap ${activeTab === "history" ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`}> 過去の記録</button>
                 <button onClick={() => setActiveTab("record")} className={`px-5 py-3 font-bold text-sm rounded-t-lg whitespace-nowrap ${activeTab === "record" ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600'}`}> 記録をつける</button>
@@ -400,7 +434,6 @@ export default function Home() {
               )}
               {activeTab === "record" && (
                 <div className="max-w-4xl mx-auto bg-white p-4 md:p-8 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4 md:gap-6 pb-10">
-                  
                   <div className="flex justify-center border-b pb-4 md:pb-6">
                     <button 
                       key={isRecording ? "recording" : "idle"}
@@ -413,7 +446,6 @@ export default function Home() {
                       {!isRecording ? " 録音して文字起こし" : " 録音を終了する"}
                     </button>
                   </div>
-
                   {isLoading && <p className="text-center text-blue-500 text-sm font-bold animate-pulse">AIが処理中...</p>}
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 1. 文字起こし結果</label><textarea className="w-full h-32 border border-gray-300 p-3 rounded-lg text-base md:text-sm" value={transcribedText} onChange={(e) => setTranscribedText(e.target.value)}></textarea></div>
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 2. マスキング対象</label><input type="text" value={manualNames} onChange={(e) => setManualNames(e.target.value)} className="w-full border border-gray-300 p-3 rounded-lg text-base md:text-sm"/></div>

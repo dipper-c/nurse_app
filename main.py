@@ -157,6 +157,17 @@ def reorder_patients(req: ReorderRequest, db: Session = Depends(get_db), current
     db.commit()
     return {"message": "並び順を更新しました"}
 
+@app.delete("/patients/{patient_id}")
+def delete_patient(patient_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    patient = db.query(Patient).filter(Patient.id == patient_id, Patient.user_id == current_user.id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="患者が見つかりません")
+    
+    db.query(ReportRecord).filter(ReportRecord.patient_id == patient_id, ReportRecord.user_id == current_user.id).delete()
+    db.delete(patient)
+    db.commit()
+    return {"message": "患者データを削除しました"}
+
 @app.get("/patients/{patient_id}/records")
 def get_patient_records(patient_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(ReportRecord).filter(ReportRecord.user_id == current_user.id, ReportRecord.patient_id == patient_id).order_by(ReportRecord.created_at.desc()).all()
