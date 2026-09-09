@@ -52,12 +52,10 @@ export default function Home() {
   };
 
   const formatDateTime = (dateString: string) => {
-    
     let safeDateString = dateString;
     if (!safeDateString.includes("Z") && !safeDateString.includes("+")) {
       safeDateString = safeDateString.replace(" ", "T") + "Z";
     }
-    
     const d = new Date(safeDateString);
     const days = ['日', '月', '火', '水', '木', '金', '土'];
     const yyyy = d.getFullYear();
@@ -209,8 +207,33 @@ export default function Home() {
   const handleGenerateSoap = async () => {
     if (!selectedPatient) return;
     setIsLoading(true);
+    
+    const optimizedDict: Record<string, string> = {};
+    Object.entries(maskingDict).forEach(([k, v]) => {
+      const strK = String(k);
+      const strV = String(v);
+      const isMask = strK.includes("対象者") || strK.match(/^[A-Z]$/) || strK.includes("*");
+      const maskLabel = isMask ? strK : strV;
+      const realName = isMask ? strV : strK;
+      
+      optimizedDict[maskLabel] = realName;
+      const cleanMask = maskLabel.replace(/[\[\]<>【】]/g, '');
+      if (cleanMask !== maskLabel) {
+        optimizedDict[cleanMask] = realName;
+      }
+    });
+
     try {
-      const res = await fetch(`${API_BASE}/generate_soap`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ patient_id: selectedPatient.id, masked_text: maskedText, masking_dict: maskingDict, original_text: transcribedText }), });
+      const res = await fetch(`${API_BASE}/generate_soap`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, 
+        body: JSON.stringify({ 
+          patient_id: selectedPatient.id, 
+          masked_text: maskedText, 
+          masking_dict: optimizedDict, 
+          original_text: transcribedText 
+        }), 
+      });
       const data = await res.json(); setFinalSoap(data.final_soap); fetchRecords(selectedPatient.id); showToast("SOAPを作成・保存しました！");
     } catch (error) { showToast("SOAP生成失敗"); } finally { setIsLoading(false); }
   };
@@ -377,9 +400,24 @@ export default function Home() {
               )}
               {activeTab === "record" && (
                 <div className="max-w-4xl mx-auto bg-white p-4 md:p-8 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4 md:gap-6 pb-10">
+                  
                   <div className="flex justify-center border-b pb-4 md:pb-6">
-                    {!isRecording ? <button onClick={startRecording} className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow text-sm md:text-base"> 録音して文字起こし</button> : <button onClick={stopRecording} className="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow animate-pulse text-sm md:text-base"> 録音を終了する</button>}
+                    <button 
+                      onClick={startRecording} 
+                      style={{ display: !isRecording ? 'block' : 'none' }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow text-sm md:text-base"
+                    >
+                       録音して文字起こし
+                    </button>
+                    <button 
+                      onClick={stopRecording} 
+                      style={{ display: isRecording ? 'block' : 'none' }}
+                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow animate-pulse text-sm md:text-base"
+                    >
+                       録音を終了する
+                    </button>
                   </div>
+
                   {isLoading && <p className="text-center text-blue-500 text-sm font-bold animate-pulse">AIが処理中...</p>}
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 1. 文字起こし結果</label><textarea className="w-full h-32 border border-gray-300 p-3 rounded-lg text-base md:text-sm" value={transcribedText} onChange={(e) => setTranscribedText(e.target.value)}></textarea></div>
                   <div><label className="block text-sm font-bold text-gray-700 mb-2"> 2. マスキング対象</label><input type="text" value={manualNames} onChange={(e) => setManualNames(e.target.value)} className="w-full border border-gray-300 p-3 rounded-lg text-base md:text-sm"/></div>
