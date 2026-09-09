@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 
 type Patient = { id: number; name: string };
-type Record = { id: number; created_at: string; soap_report: string; transcription: string };
+type MedicalRecord = { id: number; created_at: string; soap_report: string; transcription: string };
 
 export default function Home() {
   const [token, setToken] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export default function Home() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [newPatientName, setNewPatientName] = useState("");
-  const [records, setRecords] = useState<Record[]>([]);
+  const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [activeTab, setActiveTab] = useState<"history" | "record">("history");
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -208,7 +208,7 @@ export default function Home() {
     if (!selectedPatient) return;
     setIsLoading(true);
     
-    const optimizedDict: Record<string, string> = {};
+    const optimizedDict: { [key: string]: string } = {};
     Object.entries(maskingDict).forEach(([k, v]) => {
       const strK = String(k);
       const strV = String(v);
@@ -230,7 +230,7 @@ export default function Home() {
         body: JSON.stringify({ 
           patient_id: selectedPatient.id, 
           masked_text: maskedText, 
-          masking_dict: optimizedDict, 
+          masking_dict: optimizedDict,
           original_text: transcribedText 
         }), 
       });
@@ -403,18 +403,14 @@ export default function Home() {
                   
                   <div className="flex justify-center border-b pb-4 md:pb-6">
                     <button 
-                      onClick={startRecording} 
-                      style={{ display: !isRecording ? 'block' : 'none' }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow text-sm md:text-base"
+                      key={isRecording ? "recording" : "idle"}
+                      onClick={!isRecording ? startRecording : stopRecording}
+                      className={`font-bold py-4 px-8 md:px-10 rounded-full shadow text-sm md:text-base w-full max-w-xs text-white
+                        ${!isRecording 
+                          ? 'bg-blue-600 hover:bg-blue-700' 
+                          : 'bg-red-500 hover:bg-red-600 animate-pulse'}`}
                     >
-                       録音して文字起こし
-                    </button>
-                    <button 
-                      onClick={stopRecording} 
-                      style={{ display: isRecording ? 'block' : 'none' }}
-                      className="bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 md:px-10 rounded-full shadow animate-pulse text-sm md:text-base"
-                    >
-                       録音を終了する
+                      {!isRecording ? " 録音して文字起こし" : " 録音を終了する"}
                     </button>
                   </div>
 
