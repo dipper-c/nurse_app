@@ -262,7 +262,14 @@ export default function Home() {
       mediaRecorder.start(); setIsRecording(true);
     } catch (error) { showToast("マイクのアクセスが許可されていません"); }
   };
-  const stopRecording = () => { mediaRecorderRef.current?.stop(); setIsRecording(false); };
+
+  const stopRecording = () => { 
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+    }
+    setIsRecording(false); 
+  };
 
   const analyzeText = async () => {
     if (!transcribedText) { setHighlightedText(""); setMaskedText(""); return; }
