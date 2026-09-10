@@ -2,30 +2,5 @@
 __pycache__/
 *.pyc
 
-# =========================
-# Xcode / iOS / Swift 用の無視リスト
-# =========================
-# Xcodeの個人的な設定や一時ファイル
-build/
-DerivedData/
-*.pbxuser
-!default.pbxuser
-*.mode1v3
-!default.mode1v3
-*.mode2v3
-!default.mode2v3
-*.perspectivev3
-!default.perspectivev3
-xcuserdata/
-*.xccheckout
-*.moved-aside
-DerivedData
-*.hmap
-*.ipa
-*.xcuserstate
-
-# CocoaPods (iOSの追加ツール用)
-Pods/
-
 # Macのシステムゴミファイル
 .DS_Store
